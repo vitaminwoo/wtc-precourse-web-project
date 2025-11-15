@@ -1,15 +1,15 @@
 package com.wtcwebproject.wtc_precourse_web_project.lotto.service;
 
-import com.wtcwebproject.wtc_precourse_web_project.lotto.domain.Lotto;
-import com.wtcwebproject.wtc_precourse_web_project.lotto.domain.Lottos;
-import com.wtcwebproject.wtc_precourse_web_project.lotto.domain.Purchase;
-import com.wtcwebproject.wtc_precourse_web_project.lotto.domain.WinnerResult;
-import com.wtcwebproject.wtc_precourse_web_project.lotto.domain.WinningLotto;
+import com.wtcwebproject.wtc_precourse_web_project.lotto.domain.*;
 
+import com.wtcwebproject.wtc_precourse_web_project.lotto.dto.WinningConstantResponse;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class LottoService {
@@ -44,5 +44,14 @@ public class LottoService {
         List<Integer> lottoNumbers = new ArrayList<>(winningLotto.getNumbers());
         lottoNumbers.add(bonusNumber);
         Lotto.validateDuplicate(lottoNumbers);
+    }
+
+    public Map<String, WinningConstantResponse> getWinnerConstants() {
+        return Stream.of(Winner.values())
+                .filter(winner -> winner != Winner.LOSE)
+                .collect(Collectors.toMap(
+                        Winner::name,
+                        WinningConstantResponse::from
+                ));
     }
 }

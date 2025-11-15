@@ -1,6 +1,11 @@
 package com.wtcwebproject.wtc_precourse_web_project.lotto.domain;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.LinkedHashMap;
 
 public class WinnerResult {
 
@@ -18,6 +23,19 @@ public class WinnerResult {
             }
         }
         return count;
+    }
+
+    public Map<Winner, Integer> getSortedWinningCounts() {
+        // 5등부터 1등까지 순서대로 정렬 (Winner Enum에 역순 정렬 Comparator 사용)
+        return Stream.of(Winner.values())
+                .filter(winner -> winner != Winner.LOSE)
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toMap(
+                        winner -> winner,
+                        this::getCountOfRank,
+                        (oldVal, newVal) -> oldVal,
+                        LinkedHashMap::new
+                ));
     }
 
     public String calculateEarnRate(int purchasePrice) {
