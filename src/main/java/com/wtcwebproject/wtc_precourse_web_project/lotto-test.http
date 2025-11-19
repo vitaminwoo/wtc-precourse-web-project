@@ -1,0 +1,23 @@
+# 시나리오 1: 당첨 상수 확인
+GET http://localhost:8080/api/lotto/constants
+
+###
+
+# 시나리오 2: 로또 구매/발행
+POST http://localhost:8080/api/lotto/buy
+Content-Type: application/json
+
+{
+  "purchasePrice": 5000
+}
+
+###
+
+# 시나리오 3: 당첨 결과 확인
+POST http://localhost:8080/api/lotto/check
+Content-Type: application/json
+
+{
+  "winningNumbers": [1, 2, 3, 4, 5, 6],
+  "winningBonusNumber": 7
+}
