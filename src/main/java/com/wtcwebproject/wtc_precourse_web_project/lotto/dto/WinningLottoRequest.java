@@ -11,6 +11,8 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 public class WinningLottoRequest {
+    private List<List<Integer>> purchasedLottoNumbers;
+
     private List<Integer> winningNumbers;
     private int winningBonusNumber;
 }

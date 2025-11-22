@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>로또 당첨 확인 시스템</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ccc; }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        input[type="number"], input[type="text"] { padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+        button { padding: 10px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        .lotto-list, .result-stats { border: 1px solid #ddd; padding: 10px; margin-top: 15px; }
+        .lotto-item { margin-bottom: 5px; font-size: 1.1em; }
+        .error { color: red; font-weight: bold; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<h1>로또 당첨 시스템</h1>
+<div id="error-message" class="error" style="display: none;"></div>
+
+<h2>1. 로또 구매</h2>
+<label for="purchase-amount">구매 금액 (원):</label>
+<input type="number" id="purchase-amount" value="5000" min="1000" step="1000">
+<button onclick="buyLottos()">로또 구매</button>
+
+<div id="lotto-results" class="lotto-list" style="display: none;">
+    <h3>구매 로또 목록 (<span id="lotto-count">0</span>개)</h3>
+    <div id="lotto-numbers">
+    </div>
+</div>
+
+<h2 style="margin-top: 30px;">2. 당첨 번호 입력 및 확인</h2>
+<label for="winning-numbers">당첨 번호 (쉼표로 구분):</label>
+<input type="text" id="winning-numbers" placeholder="예: 1, 2, 3, 4, 5, 6">
+
+<label for="bonus-number">보너스 번호:</label>
+<input type="number" id="bonus-number" min="1" max="45">
+
+<button onclick="checkWinning()">결과 확인</button>
+
+<div id="final-result" class="result-stats" style="display: none;">
+    <h3>당첨 통계</h3>
+    <table border="1" style="width: 100%; border-collapse: collapse;">
+        <thead>
+        <tr><th>일치 개수</th><th>당첨 금액</th><th>당첨 개수</th></tr>
+        </thead>
+        <tbody id="result-table-body">
+        </tbody>
+    </table>
+    <p style="font-weight: bold;">나의 총 수익률: <span id="income-rate">0%</span></p>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://localhost:8080/api/lotto';
+    let lottoConstants = {};
+    let purchasedLottosData = null;
+
+    // DOM 요소 캐시
+    const $errorMessage = document.getElementById('error-message');
+    const $lottoResults = document.getElementById('lotto-results');
+    const $lottoCount = document.getElementById('lotto-count');
+    const $lottoNumbersDiv = document.getElementById('lotto-numbers');
+    const $resultTableBody = document.getElementById('result-table-body');
+    const $finalResultDiv = document.getElementById('final-result');
+    const $incomeRateSpan = document.getElementById('income-rate');
+
+    // 400 Bad Request와 같은 API 오류 메시지를 화면에 표시.
+    function displayError(message) {
+        $errorMessage.textContent = message;
+        $errorMessage.style.display = 'block';
+        setTimeout(() => {
+            $errorMessage.style.display = 'none';
+        }, 5000);
+    }
+
+    // 1. 상수 데이터 로드
+
+    // 서버에서 당첨 상수(당첨 금액, 당첨 조건)를 미리 불러와 저장.
+    async function fetchConstants() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/constants`);
+            if (!response.ok) {
+                displayError("상수 데이터를 불러오는 데 실패했습니다.");
+                return;
+            }
+            lottoConstants = await response.json();
+        } catch (error) {
+            displayError("서버 연결에 실패했습니다: " + error.message);
+        }
+    }
+
+    // 페이지 로드 시 상수 데이터를 미리 불러오기.
+    fetchConstants();
+
+    // 2. 로또 구매 및 발행
+
+    async function buyLottos() {
+        $errorMessage.style.display = 'none';
+
+        const purchaseAmount = document.getElementById('purchase-amount').value;
+        const amount = parseInt(purchaseAmount);
+
+        if (amount <= 0 || amount % 1000 !== 0) {
+            displayError("[ERROR] 구매 금액은 1000원 단위로 양수여야 합니다.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/buy`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ purchasePrice: amount })
+            });
+
+            if (!response.ok) {
+                // 백엔드에서 발생한 400 Bad Request 등의 오류를 처리.
+                const errorData = await response.json();
+                displayError(errorData.message || "로또 구매 처리 중 오류가 발생했습니다.");
+                return;
+            }
+
+            const data = await response.json();
+            displayLottos(data);
+
+        } catch (error) {
+            displayError("로또 구매 API 호출 중 문제가 발생했습니다: " + error.message);
+        }
+    }
+
+    function displayLottos(data) {
+        purchasedLottosData = data.lottos;
+
+        $lottoCount.textContent = data.count;
+        $lottoNumbersDiv.innerHTML = ''; // 이전 목록 초기화
+
+        data.lottos.forEach(lotto => {
+            const lottoItem = document.createElement('div');
+            lottoItem.className = 'lotto-item';
+            lottoItem.textContent = lotto.numbers.join(', ');
+            $lottoNumbersDiv.appendChild(lottoItem);
+        });
+
+        $lottoResults.style.display = 'block';
+        $finalResultDiv.style.display = 'none'; // 새 구매 시 결과 숨김
+    }
+
+    // 3. 당첨 확인 및 결과 출력
+
+    async function checkWinning() {
+        $errorMessage.style.display = 'none';
+
+        if (!purchasedLottosData || purchasedLottosData.length === 0) {
+            displayError("먼저 로또를 구매해주세요.");
+            return;
+        }
+
+        const winningNumbersInput = document.getElementById('winning-numbers').value;
+        const bonusNumberInput = document.getElementById('bonus-number').value;
+
+        const winningNumbers = winningNumbersInput.split(',').map(n => parseInt(n.trim()));
+        const winningBonusNumber = parseInt(bonusNumberInput);
+
+        if (winningNumbers.some(isNaN) || isNaN(winningBonusNumber)) {
+            displayError("당첨 번호와 보너스 번호를 숫자로 정확히 입력해 주세요.");
+            return;
+        }
+
+        try {
+            const purchasedLottoNumbers = purchasedLottosData.map(l => l.numbers);
+
+            const response = await fetch(`${API_BASE_URL}/check`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    purchasedLottoNumbers: purchasedLottoNumbers,
+                    winningNumbers: winningNumbers,
+                    winningBonusNumber: winningBonusNumber
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                displayError(errorData.message || "당첨 결과 확인 중 오류가 발생했습니다.");
+                return;
+            }
+
+            const data = await response.json();
+            displayResult(data);
+
+        } catch (error) {
+            displayError("당첨 결과 확인 API 호출 중 문제가 발생했습니다: " + error.message);
+        }
+    }
+
+    function displayResult(data) {
+        $resultTableBody.innerHTML = ''; // 이전 결과 초기화
+
+        // 1. 통계 테이블 그리기
+        const ranks = ['FIFTH', 'FORTH', 'THIRD', 'SECOND', 'FIRST'];
+
+        ranks.forEach(rank => {
+            const constants = lottoConstants[rank];
+            const count = data.winningStatistics[rank] || 0;
+
+            if (constants) {
+                const row = $resultTableBody.insertRow();
+
+                // 일치 개수 셀 내용 결정
+                const matchText = constants.bonusRequired
+                    ? `${constants.matchCount}개 일치, 보너스 볼 일치`
+                    : `${constants.matchCount}개 일치`;
+
+                row.insertCell(0).textContent = matchText;
+
+                const priceText = constants.winnerPrice.toLocaleString() + '원';
+                row.insertCell(1).textContent = priceText;
+
+                row.insertCell(2).textContent = count + '개';
+            }
+        });
+
+        // 2. 수익률 표시
+        $incomeRateSpan.textContent = data.incomeRate;
+
+        $finalResultDiv.style.display = 'block';
+    }
+
+</script>
+
+</body>
+</html>

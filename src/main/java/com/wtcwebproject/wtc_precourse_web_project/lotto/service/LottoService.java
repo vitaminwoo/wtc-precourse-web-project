@@ -36,6 +36,14 @@ public class LottoService {
         return winnerResult;
     }
 
+    // createLottosFromNumbers() : List<List<Integer>>를 List<Lotto>로 변환
+    public Lottos createLottosFromNumbers(List<List<Integer>> numbers) {
+        List<Lotto> purchasedLottos = numbers.stream()
+                .map(Lotto::new)
+                .collect(Collectors.toList());
+
+        return new Lottos(purchasedLottos);
+    }
 
     // WinningLotto 생성자에서 검증해도 괜찮을듯. 이후에 리팩토링.
     private void validateWinningBonusNumber(Lotto winningLotto, int bonusNumber) {

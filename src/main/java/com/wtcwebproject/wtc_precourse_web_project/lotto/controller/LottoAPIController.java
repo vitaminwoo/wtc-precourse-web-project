@@ -47,18 +47,17 @@ public class LottoAPIController {
     // 구매 로또 목록과 당첨 번호를 받아 최종 당첨 통계를 계산.
     @PostMapping("/check")
     public ResponseEntity<WinnerResultResponse> checkWinningResult(@RequestBody WinningLottoRequest request) {
-        // (임시) 구매 금액 5000원으로 가정하여 로또 생성 및 결과 계산 (실제는 상태 유지 필요)
-        int assumedPurchasePrice = 5000;
-        Lottos purchasedLottos = lottoService.createPurchase(assumedPurchasePrice);
-
         WinningLotto winningLotto = lottoService.createWinningLotto(
                 request.getWinningNumbers(),
                 request.getWinningBonusNumber()
         );
+        Lottos purchasedLottos = lottoService.createLottosFromNumbers(request.getPurchasedLottoNumbers());
+
+        int actualPurchasePrice = purchasedLottos.getLottosNumbers().size() * 1000;
 
         WinnerResult winnerResult = lottoService.calculateResult(purchasedLottos, winningLotto);
 
-        WinnerResultResponse response = WinnerResultResponse.from(winnerResult, assumedPurchasePrice);
+        WinnerResultResponse response = WinnerResultResponse.from(winnerResult, actualPurchasePrice);
         return ResponseEntity.ok(response);
     }
 }
