@@ -18,15 +18,19 @@ public class Lotto {
         numbersCopy.sort(null);
         validate(numbersCopy);
         validateDuplicate(numbersCopy);
-        for (int number : numbersCopy) {
-            validateNumber(number);
-        }
+        validateNumbers(numbersCopy);
         this.numbers = numbersCopy;
     }
 
     public static void validateNumber(int number) {
         if (number < LOTTO_NUMBER_MIN || number > LOTTO_NUMBER_MAX) {
             throw new IllegalArgumentException("[ERROR] 로또 번호는 1 ~ 45 사이의 숫자여야 합니다.");
+        }
+    }
+
+    public void validateNumbers(List<Integer> numbers) {
+        for (int number : numbers) {
+            validateNumber(number);
         }
     }
 
