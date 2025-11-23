@@ -66,8 +66,8 @@ public class Lotto {
         return count;
     }
 
-    public boolean checkWinningLottoBonusNumber(int winningLottoBonusNumber) {
-        return this.numbers.contains(winningLottoBonusNumber);
+    public boolean checkWinningLottoBonusNumber(BonusNumber winningLottoBonusNumber) {
+        return this.numbers.contains(winningLottoBonusNumber.getNumber());
     }
 
     public List<Integer> getNumbers() {
