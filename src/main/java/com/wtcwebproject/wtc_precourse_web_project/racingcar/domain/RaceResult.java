@@ -1,10 +1,11 @@
-package com.wtcwebproject.wtc_precourse_web_project.racingcar;
+package com.wtcwebproject.wtc_precourse_web_project.racingcar.domain;
 
 import camp.nextstep.edu.missionutils.Randoms;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.Collections;
 
 public class RaceResult {
     private static final int START_INCLUSIVE = 0;
@@ -21,15 +22,14 @@ public class RaceResult {
                 ));
     }
 
-    public void moveOneResult() {
+    public Map<String, Integer> moveOneResult() {
         this.carMoveMap.forEach((carName, moveCount) -> {
             if(moveRequirement()){
                 carMoveMap.put(carName, moveCount + 1);
             }
-            String carMoveStr = "-".repeat(carMoveMap.get(carName));
-            System.out.println(carName + " : " + carMoveStr);
         });
-        System.out.println();
+
+        return Collections.unmodifiableMap(carMoveMap);
     }
 
     public boolean moveRequirement() {
