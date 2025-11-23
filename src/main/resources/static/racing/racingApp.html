@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>레이싱카 웹 시뮬레이터</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ccc; }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        input[type="text"], input[type="number"] { padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; cursor: pointer; margin-top: 10px; }
+        #race-board { border: 1px solid #ddd; padding: 15px; margin-top: 20px; min-height: 100px; }
+        .car-status {
+            margin-bottom: 5px;
+            display: flex;
+        }
+
+        .car-name {
+            display: inline-block;
+            width: 80px;
+            min-width: 80px;
+            text-align: right;
+            padding-right: 10px;
+            font-weight: bold;
+        }
+
+        .car-position {
+            display: inline-block;
+            font-family: monospace;
+            white-space: pre;
+        }
+        .winner { color: green; font-weight: bold; font-size: 1.5em; margin-top: 20px; }
+        .error { color: red; font-weight: bold; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<h1>레이싱카 시뮬레이션</h1>
+<div id="error-message" class="error" style="display: none;"></div>
+
+<h2>경주 설정</h2>
+<label for="car-names">경주할 자동차 이름 (쉼표로 구분, 5자 이하) :</label>
+<input type="text" id="car-names" placeholder="예: pobi,woni,jun">
+
+<label for="race-count">시도할 횟수 :</label>
+<input type="number" id="race-count" value="3" min="1">
+
+<button onclick="startRace()">경주 시작</button>
+
+<h2 style="margin-top: 30px;">레이싱 시뮬레이터</h2>
+<div id="race-board">
+</div>
+
+<div id="final-winner" class="winner" style="display: none;">
+    최종 우승자 : <span id="winner-list"></span>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://localhost:8080/api/racing';
+    const ROUND_DELAY = 1100; // 출력 딜레이 시간.
+
+    // DOM 요소 캐시
+    const $raceBoard = document.getElementById('race-board');
+    const $errorMessage = document.getElementById('error-message');
+    const $finalWinnerDiv = document.getElementById('final-winner');
+    const $winnerListSpan = document.getElementById('winner-list');
+
+    let animationInterval = null;
+
+    function displayError(message) {
+        $errorMessage.textContent = message;
+        $errorMessage.style.display = 'block';
+        setTimeout(() => {
+            $errorMessage.style.display = 'none';
+        }, 5000);
+    }
+
+    function resetRace() {
+        if (animationInterval) {
+            clearInterval(animationInterval);
+            animationInterval = null;
+        }
+        $raceBoard.innerHTML = '';
+        $finalWinnerDiv.style.display = 'none';
+    }
+
+    // 1. API 호출 함수
+
+    async function startRace() {
+        resetRace();
+
+        const carNamesInput = document.getElementById('car-names').value;
+        const raceCount = parseInt(document.getElementById('race-count').value);
+
+        if (!carNamesInput.trim()) {
+            displayError("자동차 이름을 입력해주세요.");
+            return;
+        }
+        if (isNaN(raceCount) || raceCount <= 0) {
+            displayError("시도 횟수는 1 이상의 숫자여야 합니다.");
+            return;
+        }
+
+        const carNamesArray = carNamesInput.split(',').map(name => name.trim()).filter(name => name.length > 0);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    carNames: carNamesArray,
+                    raceCount: raceCount
+                })
+            });
+
+            if (!response.ok) {
+                // 백엔드 유효성 검증 오류 처리 (400 Bad Request 등)
+                const errorData = await response.json();
+                displayError(errorData.message || "경주 시작 중 오류가 발생했습니다.");
+                return;
+            }
+
+            const data = await response.json();
+            startAnimation(data);
+
+        } catch (error) {
+            displayError("API 호출 중 문제가 발생했습니다: " + error.message);
+        }
+    }
+
+    // 2. 자동차 경주 애니메이션 출력 함수
+
+    function startAnimation(data) {
+        const results = data.allRoundResults;
+        const totalRounds = data.totalRounds;
+        let round = 0;
+
+        $raceBoard.innerHTML = `<h3>자동차 경주 시작!</h3><hr>`;
+
+        // 매 ROUND_DELAY 간격으로 한 라운드씩 결과를 출력
+        animationInterval = setInterval(() => {
+            if (round >= totalRounds) {
+                // 모든 라운드 종료 시
+                clearInterval(animationInterval);
+                displayWinner(data.winnerNames);
+                return;
+            }
+
+            $raceBoard.innerHTML = '';
+
+            const currentRoundResult = results[round];
+            displayRound(round + 1, currentRoundResult);
+
+            round++;
+        }, ROUND_DELAY);
+    }
+
+    function displayRound(roundNumber, result) {
+        $raceBoard.innerHTML += `<h4>Round ${roundNumber}</h4>`;
+
+        // 각 자동차의 위치를 출력
+        result.forEach(carStatus => {
+            const position = carStatus.position;
+            const positionDisplay = '-'.repeat(position);
+
+            const carStatusDiv = document.createElement('div');
+            carStatusDiv.className = 'car-status';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'car-name';
+            nameSpan.textContent = `${carStatus.name} :`;
+
+            const positionSpan = document.createElement('span');
+            positionSpan.className = 'car-position';
+            positionSpan.textContent = positionDisplay;
+
+            carStatusDiv.appendChild(nameSpan);
+            carStatusDiv.appendChild(positionSpan);
+
+            $raceBoard.appendChild(carStatusDiv);
+        });
+    }
+
+    function displayWinner(winnerNames) {
+        $winnerListSpan.textContent = winnerNames.join(', ');
+        $finalWinnerDiv.style.display = 'block';
+    }
+
+</script>
+
+</body>
+</html>

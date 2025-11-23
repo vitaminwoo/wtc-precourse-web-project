@@ -2,6 +2,7 @@ package com.wtcwebproject.wtc_precourse_web_project.racingcar.domain;
 
 import camp.nextstep.edu.missionutils.Randoms;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,7 +19,9 @@ public class RaceResult {
         this.carMoveMap = carNamesList.stream()
                 .collect(Collectors.toMap(
                         carName -> carName,
-                        carName -> 0
+                        carName -> 0,
+                        (oldValue, newValue) -> oldValue,
+                        LinkedHashMap::new
                 ));
     }
 

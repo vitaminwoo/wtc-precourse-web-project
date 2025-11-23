@@ -4,6 +4,7 @@ import com.wtcwebproject.wtc_precourse_web_project.racingcar.domain.CarNameValid
 import com.wtcwebproject.wtc_precourse_web_project.racingcar.domain.RaceCountValidator;
 import com.wtcwebproject.wtc_precourse_web_project.racingcar.domain.RaceResult;
 import com.wtcwebproject.wtc_precourse_web_project.racingcar.domain.WinnerSelector;
+import com.wtcwebproject.wtc_precourse_web_project.racingcar.dto.CarStatus;
 import com.wtcwebproject.wtc_precourse_web_project.racingcar.dto.RacingRequest;
 import com.wtcwebproject.wtc_precourse_web_project.racingcar.dto.RacingResponse;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class RacingService {
@@ -20,10 +22,10 @@ public class RacingService {
         int validatedRaceCount = validateRaceCount(request.getRaceCount());
 
         // 경주 실행 및 모든 라운드 기록 저장
-        List<Map<String, Integer>> allRoundResults = executeRace(validatedCarNames, validatedRaceCount);
+        List<List<CarStatus>> allRoundResults = executeRace(validatedCarNames, validatedRaceCount);
 
         // 최종 결과 기반 우승자 선정
-        Map<String, Integer> finalResult = allRoundResults.get(allRoundResults.size() - 1);
+        List<CarStatus> finalResult = allRoundResults.get(allRoundResults.size() - 1);
         List<String> winnerNames = WinnerSelector.winnerNames(finalResult);
 
         // DTO로 변환하여 반환
@@ -55,13 +57,21 @@ public class RacingService {
         return RaceCountValidator.validateMoveCount(raceCount);
     }
 
-    private List<Map<String, Integer>> executeRace(List<String> carNamesList, int raceCount) {
+    private List<List<CarStatus>> executeRace(List<String> carNamesList, int raceCount) {
         RaceResult raceResult = new RaceResult(carNamesList);
-        List<Map<String, Integer>> allRoundResults = new ArrayList<>();
+        List<List<CarStatus>> allRoundResults = new ArrayList<>();
 
         for (int i = 0; i < raceCount; i++) {
-            Map<String, Integer> currentRoundResult = raceResult.moveOneResult();
-            allRoundResults.add(Map.copyOf(currentRoundResult));
+            Map<String, Integer> currentRoundMap = raceResult.moveOneResult();
+
+            List<CarStatus> roundStatus = carNamesList.stream()
+                    .map(name -> CarStatus.builder()
+                            .name(name)
+                            .position(currentRoundMap.get(name))
+                            .build())
+                    .collect(Collectors.toList());
+
+            allRoundResults.add(roundStatus);
         }
 
         return allRoundResults;
