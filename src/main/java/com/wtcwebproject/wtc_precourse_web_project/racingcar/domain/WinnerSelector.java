@@ -1,4 +1,4 @@
-package com.wtcwebproject.wtc_precourse_web_project.racingcar;
+package com.wtcwebproject.wtc_precourse_web_project.racingcar.domain;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -7,7 +7,7 @@ import java.util.Map;
 
 public class WinnerSelector {
 
-    public static String winnerNames(Map<String, Integer> resultMap) {
+    public static List<String> winnerNames(Map<String, Integer> resultMap) {
         List<String> winnerNamesList = new ArrayList<>();
         int winnerMoveCount = countWinnerMove(resultMap);
         resultMap.forEach((carName, moveCount) -> {
@@ -16,7 +16,7 @@ public class WinnerSelector {
            }
         });
 
-        return String.join(", ", winnerNamesList);
+        return winnerNamesList;
     }
 
     public static int countWinnerMove(Map<String, Integer> resultMap) {
