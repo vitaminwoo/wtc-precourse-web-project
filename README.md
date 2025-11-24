@@ -51,7 +51,7 @@ Spring Boot 내장 Tomcat에 의해 할당된 포트(기본 8080)로 접속하�
 
 ---
 ## 프로젝트 구조
-```java
+```text
 ├── main
 │   ├── java
 │   │   └── com
