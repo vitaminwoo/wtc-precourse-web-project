@@ -24,7 +24,7 @@
 <button onclick="buyLottos()">로또 구매</button>
 
 <div id="lotto-results" class="lotto-list" style="display: none;">
-    <h3>구매 로또 목록 (<span id="lotto-count">0</span>개)</h3>
+    <h3>구매 로또 목록</h3>
     <div id="lotto-numbers">
     </div>
 </div>
@@ -58,7 +58,6 @@
     // DOM 요소 캐시
     const $errorMessage = document.getElementById('error-message');
     const $lottoResults = document.getElementById('lotto-results');
-    const $lottoCount = document.getElementById('lotto-count');
     const $lottoNumbersDiv = document.getElementById('lotto-numbers');
     const $resultTableBody = document.getElementById('result-table-body');
     const $finalResultDiv = document.getElementById('final-result');
@@ -132,7 +131,6 @@
     function displayLottos(data) {
         purchasedLottosData = data.lottos;
 
-        $lottoCount.textContent = data.count;
         $lottoNumbersDiv.innerHTML = ''; // 이전 목록 초기화
 
         data.lottos.forEach(lotto => {
